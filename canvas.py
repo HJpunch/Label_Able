@@ -381,10 +381,10 @@ class Canvas(QtWidgets.QWidget):
                 top = rect.top()
             if rect.bottom() > bottom:
                 bottom = rect.bottom()
-        x1 = left - point.x()
-        y1 = top - point.y()
-        x2 = right - point.x()
-        y2 = bottom - point.y()
+        x1 = int(left - point.x())
+        y1 = int(top - point.y())
+        x2 = int(right - point.x())
+        y2 = int(bottom - point.y())
         self.offsets = QtCore.QPoint(x1, y1), QtCore.QPoint(x2, y2)
 
     def boundedMoveVertex(self, pos):
