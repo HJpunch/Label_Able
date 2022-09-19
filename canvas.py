@@ -157,9 +157,9 @@ class Canvas(QtWidgets.QWidget):
             if not self.current:
                 return
 
-            # if self.outOfPixmap(pos):
-            #     # Prevent to draw outside the pixmap
-            #     pos = self.intersectionPoint(self.current[-1], pos)
+            if self.outOfPixmap(pos):
+                # Prevent to draw outside the pixmap
+                pos = self.intersectionPoint(pos)
             # if (
             #     self.snapping and
             #     len(self.current) > 1 and
@@ -193,11 +193,19 @@ class Canvas(QtWidgets.QWidget):
         # rectangle/vertex moving
         if ev.buttons() == QtCore. Qt.MouseButton.LeftButton:
             if self.selectedVertex():
+                if self.outOfPixmap(pos):
+                    # Prevent to draw outside the pixmap
+                    pos = self.intersectionPoint(pos)
+
                 self.boundedMoveVertex(pos)
                 self.repaint()
                 self.movingShape = True
+
             elif self.selectedShapes and self.prevPoint:
                 self.overrideCursor(CURSOR_MOVE)
+                if self.outOfPixmap(pos):
+                    # Prevent to draw outside the pixmap
+                    pos = self.intersectionPoint(pos)
                 self.boundedMoveShapes(self.selectedShapes, pos)
                 self.repaint()
                 self.movingShape = True
@@ -250,8 +258,7 @@ class Canvas(QtWidgets.QWidget):
                     self.current.points = self.line.points
                     self.finalise()
 
-                else:
-                # elif not self.outOfPixmap(pos):
+                elif not self.outOfPixmap(pos):
                     # create new shape
                     self.current = Shape()
                     self.current.addPoint(pos)
@@ -398,15 +405,15 @@ class Canvas(QtWidgets.QWidget):
         o1 = pos + self.offsets[0]  # x1, y1
         if self.outOfPixmap(o1):
             pos -= QtCore.QPoint(
-                min(0, o1.pos().x()),
-                min(0, o1.pos().y())
+                min(0, o1.x()),
+                min(0, o1.y())
             )
 
         o2 = pos + self.offsets[1]  # x2, y2
         if self.outOfPixmap(o2):
             pos += QtCore.QPoint(
-                min(0, self.pixmap.width() - o2.pos().x()),
-                min(0, self.pixmap.height() - o2.pos().y())
+                min(0, self.pixmap.width() - o2.x()),
+                min(0, self.pixmap.height() - o2.y())
             )
 
         dp = pos - self.prevPoint
@@ -497,6 +504,70 @@ class Canvas(QtWidgets.QWidget):
         w, h = self.pixmap.width(), self.pixmap.height()
         return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
 
+    def intersectionPoint(self, point):
+        size = self.pixmap.size()
+        # points = [
+        #     (0, 0),  # top left
+        #     (size.width() - 1, 0),  # top right
+        #     (size.width() - 1, size.height() - 1),  # bottom right
+        #     (0, size.height() - 1),  # bottom left
+        #
+        # points = {
+        #     "top left": (0, 0),
+        #     "top right": (size.width()-1, 0),
+        #     "bottom right": (size.width()-1, size.height()-1),
+        #     "bottom left": (0, size.height()-1)
+        # }
+
+        # x1, y1 should be in the pixmap, x2, y2 should be out of the pixmap
+        # x1 = min(max(p1.x(), 0), size.width() - 1)  # 0 or p1's x coordinate or pixmap's width
+        # y1 = min(max(p1.y(), 0), size.height() - 1)  # 0 or p1's y coordinate or pixmap's height
+        x2, y2 = point.x(), point.y()
+        x2BesideLeft = {True: 0, False: size.width()-1 if x2 > (size.width()-1) else x2}
+        y2OverTop = {True: 0, False: size.height()-1 if y2 > (size.height()-1) else y2}
+
+        x2 = x2BesideLeft[bool(x2 < 0)]
+        y2 = y2OverTop[bool(y2 < 0)]
+        return QtCore.QPoint(x2, y2)
+        # d, i, (x, y) = min(self.intersectingEdges((x1, y1), (x2, y2), points))
+        # x3, y3 = points[i]
+        # x4, y4 = points[(i + 1) % 4]
+        # if (x, y) == (x1, y1):
+        #     # Handle cases where previous point is on one of the edges.
+        #     if x3 == x4:
+        #         return QtCore.QPoint(x3, min(max(0, y2), max(y3, y4)))
+        #     else:  # y3 == y4
+        #         return QtCore.QPoint(min(max(0, x2), max(x3, x4)), y3)
+        # return QtCore.QPoint(x, y)
+
+    # def intersectingEdges(self, point1, point2, points):
+    #     """Find intersecting edges.
+    #     For each edge formed by `points', yield the intersection
+    #     with the line segment `(x1,y1) - (x2,y2)`, if it exists.
+    #     Also return the distance of `(x2,y2)' to the middle of the
+    #     edge along with its index, so that the one closest can be chosen.
+    #     """
+    #     (x1, y1) = point1
+    #     (x2, y2) = point2
+    #     for i in range(4):
+    #         x3, y3 = points[i]
+    #         x4, y4 = points[(i + 1) % 4]
+    #         denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    #         nua = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)
+    #         nub = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)
+    #         if denom == 0:
+    #             # This covers two cases:
+    #             #   nua == nub == 0: Coincident
+    #             #   otherwise: Parallel
+    #             continue
+    #         ua, ub = nua / denom, nub / denom
+    #         if 0 <= ua <= 1 and 0 <= ub <= 1:
+    #             x = x1 + ua * (x2 - x1)
+    #             y = y1 + ua * (y2 - y1)
+    #             m = QtCore.QPoint((x3 + x4) / 2, (y3 + y4) / 2)
+    #             d = self.distance(m - QtCore.QPoint(x2, y2))
+    #             yield d, i, (x, y)
+
     def finalise(self):
         assert self.current
         self.current.close()
@@ -517,13 +588,6 @@ class Canvas(QtWidgets.QWidget):
         if self.pixmap:
             return self.scale * self.pixmap.size()
         return super(Canvas, self).minimumSizeHint()
-
-    # def intersectionPoint(self, p1, p2):
-    #     size = self.pixmap.size()
-    #     points = [(0, 0), (size.width()-1, 0), (size.width()-1, size.height()-1), (0, size.height()-1)]
-    #     x1 = min(max(p1.pos().x(), 0), size.width()-1)
-    #     y1 = min(max(p1.pos().y(), 0), size.height()-1)
-    #     x2, y2 = p2.pos().x(), p2.pos().y()
 
     def setLastLabel(self, text, flags):
         assert text
