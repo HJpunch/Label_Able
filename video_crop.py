@@ -5,9 +5,9 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 here = os.path.dirname(os.path.abspath(__file__))
 
 
-def newIcon(icon):
+def iconPath(icon):
     icons_dir = os.path.join(here, "icons")
-    return QtGui.QIcon(os.path.join(":/", icons_dir, f"{icon}.png"))
+    return os.path.join(":/", icons_dir, f"{icon}.png")
 
 
 class VideoSelectDialog(QtWidgets.QDialog):
@@ -26,10 +26,13 @@ class VideoSelectDialog(QtWidgets.QDialog):
         # self.loadLayout.addWidget(QtWidgets.QLabel("Video : "))
         self.fileEdit = QtWidgets.QLineEdit()
         self.fileEdit.setPlaceholderText("Enter file name")
-        self.fileSelect = QtWidgets.QPushButton(newIcon("folder-search-result.png"), "Select Video", self)
-        # self.loadLayout.addWidget(self.fileEdit)
-        # self.loadLayout.addWidget(self.fileSelect)
-        # self.layout.addWidget(self.file)
+
+        self.fileSelect = QtWidgets.QPushButton()
+        pixmap = QtGui.QPixmap(iconPath("folder-search-result"))
+        icon = QtGui.QIcon(pixmap)
+        self.fileSelect.setIcon(icon)
+        self.fileSelect.setIconSize(pixmap.rect().size())
+
         self.layout.addWidget(QtWidgets.QLabel("Video : "), 0, 0)
         self.layout.addWidget(self.fileEdit, 0, 1)
         self.layout.addWidget(self.fileSelect, 0, 2)
@@ -38,16 +41,18 @@ class VideoSelectDialog(QtWidgets.QDialog):
         self.layout.addWidget(QtWidgets.QLabel("Save at : "), 1, 0)
         self.dirEdit = QtWidgets.QLineEdit()
         self.dirEdit.setPlaceholderText("Enter directory to save")
-        self.dirSelect = QtWidgets.QPushButton(newIcon("folder-search-result.png"), "Select Dir", self)
+
+        self.dirSelect = QtWidgets.QPushButton()
+        icon = QtGui.QIcon(pixmap)
+        self.dirSelect.setIcon(icon)
+        self.dirSelect.setIconSize(pixmap.rect().size())
+
         self.layout.addWidget(self.dirEdit, 1, 1)
         self.layout.addWidget(self.dirSelect, 1, 2)
 
         self.fileSelect.clicked.connect(self.loadVideo)
         self.dirSelect.clicked.connect(self.loadDir)
 
-        # self.layout.addLayout(self.loadLayout)
-        # self.layout.addLayout(self.saveLayout)
-        # self.layout.addWidget(self.buttonbox, alignment=QtCore.Qt.AlignmentFlag.AlignRight)
         self.layout.addWidget(self.buttonbox)
         self.setLayout(self.layout)
 
