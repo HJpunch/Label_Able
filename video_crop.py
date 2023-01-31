@@ -102,6 +102,10 @@ class VideoParseDialog(QtWidgets.QDialog):
         self.dir = directory
 
         self.video = cv2.VideoCapture(self.file)
+        if not self.video.isOpened():
+            print(f"Could not Open : {self.file}")
+            exit(0)
+
         self.length = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -146,6 +150,13 @@ class VideoParseDialog(QtWidgets.QDialog):
         if not self.video.isOpened():
             return
 
+        print("videoparsing")
+        print(self.dir)
+        print("length :", self.length)
+        print("width :", self.width)
+        print("height :", self.height)
+        print("fps :", self.fps)
+
         count = 0
         while (self.video.isOpened()):
             ret, image = self.video.read()
@@ -153,11 +164,11 @@ class VideoParseDialog(QtWidgets.QDialog):
             # print(image)
             if not ret:
                 break
-            if (int(self.video.get(1)) % self.fps == 0):  # 앞서 불러온 fps 값을 사용하여 1초마다 추출
-                cv2.imwrite(self.dir + "\\frame%d.jpg" % count, image)
-                # print('Saved frame number :', str(int(self.video.get(1))))
+            if (int(self.video.get(1) % self.fps) == 0):  # 앞서 불러온 fps 값을 사용하여 1초마다 추출
+                cv2.imwrite(rf'{self.dir}' + "\\frame%d.jpg" % count, image)
                 count += 1
                 self.progress.setValue(count)
+                print('Saved frame number :', str(int(self.video.get(1))))
 
         self.video.release()
 
